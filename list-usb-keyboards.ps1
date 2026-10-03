@@ -344,7 +344,8 @@ $results = $keyboardDevices |
 
 $results | Format-Table Manufacturer, ProductName, VendorId, ProductId, Status -AutoSize
 
-Write-Host "`nFor kbd-switch.json, use values like:"
+Write-Host "`nFor kbd-switch.json, set VendorId and ProductId. Use getActiveKbdLayout.ps1 to find KLID."
+Write-Host "`nExample VendorId / ProductId:"
 $results | ForEach-Object {
     $label = (@($_.Manufacturer, $_.ProductName) | Where-Object { $_ }) -join ' '
     if ($label) {

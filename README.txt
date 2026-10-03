@@ -17,8 +17,9 @@ lock/unlock or sign-in. That makes manual switching tedious for users who only
 want EurKey when their external keyboard is plugged in.
 
 These scripts automate that step: after each workstation unlock, Windows switches
-to EurKey if the configured USB keyboard is connected. If it is not connected,
-the system default layout remains unchanged.
+to the configured EurKey KLID if the USB keyboard is connected. If it is not
+connected, an optional DefaultKLID restores your usual layout (for example the
+built-in laptop keyboard layout).
 
 
 Prerequisites
@@ -42,13 +43,13 @@ Setup Guide
    Windows. After installation, add it to your input languages in Settings and
    confirm that you can select it manually.
 
-2. Verify that EurKey is available
+2. Find the KLID of your EurKey layout
 
-   Run getActiveKbdLayout.ps1, switch to EurKey with Win+Space within the
-   5-second delay, and check that the output shows a layout name containing
-   "EurKey".
+   Run getActiveKbdLayout.ps1, switch to the EurKey variant you want with
+   Win+Space within the 5-second delay, and note the KLID from the output.
 
-   If EurKey is missing, kbd-switch.ps1 will fail with an error when it runs.
+   If several EurKey installs share the same display name, only the KLID
+   distinguishes them (for example a0010409 for DEU vs a0000409 for en-US).
 
 3. Find the Vendor ID and Product ID of your external keyboard
 
@@ -65,15 +66,14 @@ Setup Guide
    Copy kbd-switch.json.example to kbd-switch.json if the file does not exist yet,
    then edit kbd-switch.json:
 
-     VendorId        USB vendor ID from step 3, e.g. "VID_05AC"
-     ProductId       USB product ID from step 3, e.g. "PID_020B"
-     LanguageTag     Language under which EurKey is registered, default "de-DE"
-     LayoutNameRegex Regex matched against the installed layout name, default "EurKey"
+     VendorId        USB vendor ID from step 3, e.g. "VID_29EA"
+     ProductId       USB product ID from step 3, e.g. "PID_0102"
+     LanguageTag     Language under which layouts are registered, e.g. "de-DE"
+     KLID            Layout for the external keyboard, from step 2, e.g. "a0010409"
+     DefaultKLID     Optional. Layout when the USB keyboard is absent, e.g. "00000407"
 
-   If you have several EurKey variants installed (for example US EurKey and
-   DEU EurKey), tighten LayoutNameRegex to match the one you want, e.g.:
-
-     "LayoutNameRegex": "^DEU EurKey$"
+   Omit DefaultKLID or leave it empty to make no change when the external keyboard
+   is not connected.
 
    Save the file. To use a different file path, change the ConfigPath default at the
    top of kbd-switch.ps1 or pass -ConfigPath when running the script.
@@ -88,8 +88,9 @@ Setup Guide
    layout, and finish without errors. Use getActiveKbdLayout.ps1 to confirm that
    EurKey is now active.
 
-   Disconnect the external keyboard and run kbd-switch.ps1 again. It should exit
-   without making changes.
+   Disconnect the external keyboard and run kbd-switch.ps1 again. If DefaultKLID
+   is set, the default layout should be applied; otherwise the script exits without
+   making changes.
 
 6. Register the unlock trigger
 
@@ -116,13 +117,20 @@ Troubleshooting
 ---------------
 
 - Wrong layout activated
-  Check LayoutNameRegex in kbd-switch.json. A broad pattern such as "EurKey" may
-  match the wrong variant if several EurKey layouts are installed.
+  Check KLID in kbd-switch.json. Several EurKey installs may share the same display
+  name; use getActiveKbdLayout.ps1 to confirm the correct KLID.
 
 - Script runs but layout does not change
-  Confirm that $LanguageTag matches a language in your Windows language list and
-  that EurKey is installed under that language. The active input language must be
-  the one configured in the script for the override to apply visibly.
+  Confirm that LanguageTag in kbd-switch.json matches a language in your Windows
+  language list and that EurKey is installed. The active input language must be the
+  one configured in the script for the override to apply visibly.
+
+- EurKey appears under ENG in the taskbar
+  EurKey's KLID (e.g. a0010409) ends in 0409, so loading it directly makes Windows
+  add it under English. kbd-switch.ps1 loads it under LanguageTag instead, removes
+  EurKey from other languages, and unloads layouts whose language is no longer in
+  your language list. Run kbd-switch.ps1 once; any entry that remains disappears
+  after the next sign-in.
 
 - Keyboard not detected
   Re-run list-usb-keyboards.ps1 and verify VendorId and ProductId. Wireless
@@ -148,7 +156,8 @@ kbd-switch.ps1
 
 kbd-switch.json
   Configuration file read by kbd-switch.ps1. Defines the target USB keyboard
-  (VendorId, ProductId), language tag, and EurKey layout name regex.
+  (VendorId, ProductId), language tag, external keyboard KLID, and optional
+  DefaultKLID when the keyboard is absent.
 
 kbd-switch.json.example
   Example configuration file. Copy to kbd-switch.json and adjust for your setup.

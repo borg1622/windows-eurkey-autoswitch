@@ -1,6 +1,7 @@
 {
-  "VendorId": "VID_05AC",
-  "ProductId": "PID_020B",
+  "VendorId": "VID_29EA",
+  "ProductId": "PID_0102",
   "LanguageTag": "de-DE",
-  "LayoutNameRegex": "EurKey"
+  "KLID": "a0010409",
+  "DefaultKLID": "00000407"
 }
