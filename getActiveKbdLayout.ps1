@@ -3,9 +3,9 @@
     Reports the keyboard layout currently active for the foreground window.
 
 .DESCRIPTION
-    Helper script for debugging keyboard-layout switching on Windows. It resolves
-    the active layout handle (HKL), the KLID, and the human-readable name from
-    the registry.
+    Helper script for debugging keyboard-layout switching on Windows. Lists all
+    keyboard layouts registered on the system, then (after a short delay) reports
+    the active layout for the foreground window including KLID and layout name.
 
 .AUTHOR
     Dirk Osburg
@@ -44,6 +44,32 @@ public static class KeyboardLayoutApi
     public static extern bool GetKeyboardLayoutName(StringBuilder pwszKLID);
 }
 "@
+
+<#
+.SYNOPSIS
+    Lists keyboard layouts registered in the system registry.
+
+.DESCRIPTION
+    Enumerates HKLM\SYSTEM\CurrentControlSet\Control\Keyboard Layouts. Use the KLID
+    column when configuring kbd-switch.json, especially when several layouts share
+    the same display name.
+
+.OUTPUTS
+    Array of PSCustomObjects with KLID, LayoutText, and LayoutFile.
+#>
+function Get-InstalledKeyboardLayouts {
+    $keyboardLayoutsPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Keyboard Layouts"
+
+    Get-ChildItem $keyboardLayoutsPath | ForEach-Object {
+        $props = Get-ItemProperty $_.PSPath
+
+        [pscustomobject]@{
+            KLID       = $_.PSChildName
+            LayoutText = $props."Layout Text"
+            LayoutFile = $props."Layout File"
+        }
+    } | Sort-Object LayoutText, KLID
+}
 
 function Get-ActiveKeyboardLayout {
     # Keyboard layouts are tracked per thread; use the foreground window's thread.
@@ -121,6 +147,13 @@ function Get-ActiveKeyboardLayout {
         LayoutFile         = $layoutFile
     }
 }
+
+Write-Host "Installed keyboard layouts (registry):"
+Get-InstalledKeyboardLayouts | Format-Table KLID, LayoutText, LayoutFile -AutoSize
+
+Write-Host ""
+Write-Host "Active layout for the foreground window (focus target window now):"
+Write-Host ""
 
 # Brief delay so you can focus the target window before the layout is queried.
 Start-Sleep -Seconds 5
